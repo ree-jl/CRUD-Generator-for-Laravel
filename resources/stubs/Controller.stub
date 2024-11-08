@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\{{ modelName }};
+use Illuminate\Http\Request;
+use Yajra\DataTables\DataTables;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
+
+class {{ modelName }}Controller extends Controller
+{
+    public function index()
+    {
+        return view('{{ modelNameSnake }}.index');
+    }
+
+    public function ajax(Request $request)
+    {
+        $query = {{ modelName }}::query();
+
+        // Ambil kolom-kolom yang ada di tabel
+        $columns = Schema::getColumnListing((new {{ modelName }})->getTable());
+
+        // Cek apakah ada pencarian
+        if ($request->has('search') && !empty($request->search['value'])) {
+            $search = $request->search['value'];
+
+            // Loop untuk menambahkan kondisi pencarian untuk setiap kolom yang ada
+            $query->where(function($query) use ($columns, $search) {
+                foreach ($columns as $column) {
+                    $query->orWhere($column, 'like', "%{$search}%");
+                }
+            });
+        }
+
+        // Jika ada filter lain, bisa ditambahkan disini
+        // Misalnya filter berdasarkan status atau parameter lainnya
+        // if ($request->has('status')) {
+        //     $query->where('status', $request->status);
+        // }
+
+        return DataTables::of($query)
+            ->addColumn('action', function($row) {
+                return view('{{ modelNameSnake }}.partials.action-buttons', ['row' => $row])->render();
+            })
+            ->make(true);
+    }
+
+    // Fungsi lainnya seperti create, store, edit, update, destroy bisa ditambahkan di sini.
+}

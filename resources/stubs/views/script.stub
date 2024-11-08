@@ -1,0 +1,23 @@
+<script>
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '{{ route("{{ modelName }}.index") }}',
+                type: 'POST',
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+            },
+            columns: [
+                { data: 'id' },
+                { data: 'name' },
+                { data: 'action', orderable: false, searchable: false }
+            ]
+        });
+
+        $('#crudForm').on('submit', function(e) {
+            e.preventDefault();
+            // Tambahkan logika untuk submit form create/edit
+        });
+    });
+</script>

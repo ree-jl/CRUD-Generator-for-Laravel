@@ -1,0 +1,4 @@
+<h1>{{ modelName }} List</h1>
+@include('{{ modelName }}.table')
+@include('{{ modelName }}.modal')
+@include('{{ modelName }}.script')
