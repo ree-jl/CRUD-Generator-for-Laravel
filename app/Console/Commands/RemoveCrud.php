@@ -9,7 +9,6 @@ use Illuminate\Support\Str;
 class RemoveCrud extends Command
 {
 	protected $signature = 'remove:crud {name : The name of the model to remove}';
-
 	protected $description = 'Remove CRUD files for the given model';
 
 	public function handle()
@@ -20,24 +19,33 @@ class RemoveCrud extends Command
 		$tableName = Str::plural($modelNameSnake); // Asumsi tabel menggunakan bentuk jamak
 
 		// Hapus file model
-		$modelPath = app_path("/Models/{$modelName}.php");
-		if (File::exists($modelPath)) {
-			File::delete($modelPath);
-			$this->info("Model {$modelName} deleted successfully.");
-		} else {
-			$this->warn("Model {$modelName} not found.");
-		}
+		$this->deleteFile(app_path("/Models/{$modelName}.php"), "Model {$modelName} deleted successfully.");
 
 		// Hapus controller
-		$controllerPath = app_path("/Http/Controllers/{$modelName}Controller.php");
-		if (File::exists($controllerPath)) {
-			File::delete($controllerPath);
-			$this->info("Controller {$modelName}Controller deleted successfully.");
-		} else {
-			$this->warn("Controller {$modelName}Controller not found.");
-		}
+		$this->deleteFile(app_path("/Http/Controllers/{$modelName}Controller.php"), "Controller {$modelName}Controller deleted successfully.");
 
 		// Hapus migration
+		$this->deleteMigration($tableName);
+
+		// Hapus views
+		$this->deleteDirectory(resource_path("views/{$modelNameSnake}"), "Views for {$modelNameSnake} deleted successfully.");
+
+		// Hapus route
+		$this->removeRoutes($modelNameSnake, $modelName);
+	}
+
+	private function deleteFile($path, $successMessage)
+	{
+		if (File::exists($path)) {
+			File::delete($path);
+			$this->info($successMessage);
+		} else {
+			$this->warn("File at {$path} not found.");
+		}
+	}
+
+	private function deleteMigration($tableName)
+	{
 		$migrationFiles = glob(database_path("/migrations/*_create_{$tableName}_table.php"));
 		if ($migrationFiles) {
 			foreach ($migrationFiles as $migrationFile) {
@@ -47,17 +55,20 @@ class RemoveCrud extends Command
 		} else {
 			$this->warn("No migration found for table {$tableName}.");
 		}
+	}
 
-		// Hapus views
-		$viewPath = resource_path("views/{$modelNameSnake}");
-		if (File::exists($viewPath)) {
-			File::deleteDirectory($viewPath);
-			$this->info("Views for {$modelNameSnake} deleted successfully.");
+	private function deleteDirectory($path, $successMessage)
+	{
+		if (File::exists($path)) {
+			File::deleteDirectory($path);
+			$this->info($successMessage);
 		} else {
-			$this->warn("Views for {$modelNameSnake} not found.");
+			$this->warn("Directory {$path} not found.");
 		}
+	}
 
-		// Hapus route
+	private function removeRoutes($modelNameSnake, $modelName)
+	{
 		$routePath = base_path('routes/web.php');
 		if (File::exists($routePath)) {
 			$routesContent = File::get($routePath);
@@ -72,7 +83,7 @@ class RemoveCrud extends Command
 
 			// Hapus import controller jika tidak ada lagi route yang menggunakan controller ini
 			$controllerImportPattern = "use App\Http\Controllers\\{$modelName}Controller;";
-			if (!str_contains($routesContent, $controllerImportPattern)) {
+			if (!str_contains($routesContent, "Route::resource('{$modelNameSnake}', {$modelName}Controller::class)")) {
 				$routesContent = str_replace($controllerImportPattern . "\n", '', $routesContent);
 			}
 
